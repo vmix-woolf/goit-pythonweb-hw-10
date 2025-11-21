@@ -18,13 +18,6 @@ pydantic-settings = "^2.12.0"
 python-dotenv = "^1.2.1"
 greenlet = "^3.2.4"
 
-# будет добавлено далее:
-# passlib[bcrypt]
-# python-jose
-# fastapi-mail
-# slowapi
-# cloudinary
-# python-multipart
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-jose = "^3.5.0"
 fastapi-mail = "^1.5.8"
