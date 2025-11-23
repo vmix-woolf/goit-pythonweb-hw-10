@@ -28,28 +28,6 @@ http://127.0.0.1:8000
 Swagger UI:
 http://127.0.0.1:8000/docs
 
-## Project structure
-
-```
-app
-├── main.py
-├── database.py
-├── config.py
-│
-├── models
-│   └── contact.py
-│
-├── schemas
-│   └── contact.py
-│
-├── crud
-│   └── contact.py
-│
-└── api
-    └── contacts.py
-```
-
-
 ## API functionality
 POST /contacts — create a contact
 
@@ -71,3 +49,53 @@ Create migration:
 
 Apply migrations:
 ```alembic upgrade head```
+
+
+## Друга частина. Авторизація, аватар, rate limiting, Authentication & Authorization
+
+У другій частині проєкту додано повноцінну роботу з користувачами:
+
+- Реєстрація користувача (POST /auth/signup)
+- Підтвердження email через токен (GET /auth/verify)
+- Логін і видача JWT (POST /auth/login)
+- Захист усіх операцій з контактами через get_current_user
+- Користувач бачить тільки власні контакти
+- Токен містить sub = email
+- Маршрут /auth/me повертає поточного користувача
+- Email verification
+- Rate limiting
+- Ендпоінт ```/auth/me``` обмежено: 5 запитів на хвилину
+- Бібліотека: slowapi.
+
+### Avatar upload (Cloudinary)
+Реалізовано маршрут:
+POST /users/avatar
+
+Функціонал:
+- прийом файлу (multipart/form-data)
+- завантаження в Cloudinary
+- отримання avatar_url
+- збереження у БД
+- повернення посилання клієнту
+
+Використовуються змінні оточення:
+
+```
+CLOUDINARY_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET
+```
+### CORS
+Увімкнено CORS middleware для роботи з фронтендом.
+
+Дозволено origin: *
+
+(для навчального середовища).
+
+### JWT авторизація
+- Реєстрація, логін, email verify
+- Доступ до контактів тільки свого користувача
+- CRUD контактів з прив’язкою до user_id
+- Завантаження аватарів у Cloudinary
+- Rate limiting /auth/me
+- Увімкнений CORS
