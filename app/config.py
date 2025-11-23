@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     cloudinary_api_key: str
     cloudinary_api_secret: str
 
+    app_url: str
+
     model_config = {
         "env_file": ".env",
         "extra": "forbid"

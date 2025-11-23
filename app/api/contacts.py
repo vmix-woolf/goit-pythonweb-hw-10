@@ -12,7 +12,7 @@ from app.crud.contact import (
 )
 from app.schemas.contact import ContactCreate, ContactUpdate, ContactOut
 
-router = APIRouter(prefix="/contacts", tags=["Contacts"])
+router = APIRouter(tags=["Contacts"])
 
 
 @router.post("/", response_model=ContactOut)
