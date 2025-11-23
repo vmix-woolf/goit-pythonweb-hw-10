@@ -4,6 +4,8 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.services.limiter import limiter
 from app.api.auth import router as auth_router
 from app.api.contacts import router as contacts_router
+from app.api.users import router as users_router
+
 
 app = FastAPI(title="Contacts API")
 
@@ -12,6 +14,8 @@ app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(auth_router)
 app.include_router(contacts_router, prefix="/contacts")
+app.include_router(users_router)
+
 
 app.add_middleware(
     CORSMiddleware,

@@ -12,6 +12,6 @@ class User(Base):
     username = Column(String(100), nullable=False)
     password = Column(String(255), nullable=False)
     is_verified = Column(Boolean, default=False)
-
+    avatar_url = Column(String, nullable=True)
     # Зв'язок з контактами
     contacts = relationship("Contact", back_populates="owner")

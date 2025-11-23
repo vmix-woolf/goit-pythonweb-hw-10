@@ -1,4 +1,6 @@
 from pydantic_settings import BaseSettings
+from pydantic import Field
+
 
 
 class Settings(BaseSettings):
@@ -20,18 +22,18 @@ class Settings(BaseSettings):
     smtp_password: str
     mail_from: str
 
-    # Cloudinary
-    cloudinary_name: str
-    cloudinary_api_key: str
-    cloudinary_api_secret: str
-
     app_url: str
+
+    # Cloudinary
+    cloudinary_name: str = Field(alias="CLOUDINARY_CLOUD_NAME")
+    cloudinary_api_key: str = Field(alias="CLOUDINARY_API_KEY")
+    cloudinary_api_secret: str = Field(alias="CLOUDINARY_API_SECRET")
 
     model_config = {
         "env_file": ".env",
-        "extra": "forbid"
+        "extra": "ignore",
+        "populate_by_name": True,
     }
-
 
 settings = Settings()
 
