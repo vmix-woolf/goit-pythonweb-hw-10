@@ -1,0 +1,53 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.schemas.user import UserCreate, UserOut
+from app.services.email import send_verification_email
+from app.services.auth import create_access_token, verify_token
+from app.crud.user import create_user, get_user_by_email
+from app.database import get_session
+
+router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+@router.post("/signup", response_model=UserOut, status_code=201)
+async def signup(user_data: UserCreate, session: AsyncSession = Depends(get_session)):
+    """
+    Реєстрація користувача + відправка листа з підтвердженням
+    """
+    # Перевіряємо, чи існує такий email
+    existing = await get_user_by_email(session, str(user_data.email))
+    if existing:
+        raise HTTPException(status_code=409, detail="User already exists")
+
+    # Створюємо нового користувача
+    user = await create_user(session, user_data)
+
+    # Генеруємо токен підтвердження
+    token = create_access_token({"sub": user.email})
+
+    # Відправляємо email
+    await send_verification_email(user.email, token)
+
+    return user
+
+
+@router.get("/verify")
+async def verify_email(token: str, session: AsyncSession = Depends(get_session)):
+    """
+    Підтвердження email користувача
+    """
+    data = await verify_token(token)
+
+    # Отримуємо користувача
+    user = await get_user_by_email(session, data.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Оновлюємо статус
+    user.is_verified = True
+    await session.commit()
+
+    return JSONResponse({"message": "Email successfully verified"})
+
