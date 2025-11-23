@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.user import UserCreate, UserOut
+from app.schemas.user import UserCreate, UserOut, UserLogin
 from app.services.email import send_verification_email
 from app.services.auth import create_access_token, verify_token
 from app.crud.user import create_user, get_user_by_email
@@ -31,6 +31,20 @@ async def signup(user_data: UserCreate, session: AsyncSession = Depends(get_sess
     await send_verification_email(user.email, token)
 
     return user
+
+@router.post("/login")
+async def login(user_data: UserLogin, session: AsyncSession = Depends(get_session)):
+    user = await get_user_by_email(session, str(user_data.email))
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    from app.crud.user import verify_password
+    if not verify_password(user_data.password, user.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    token = create_access_token({"sub": user.email})
+    return {"access_token": token, "token_type": "bearer"}
+
 
 
 @router.get("/verify")

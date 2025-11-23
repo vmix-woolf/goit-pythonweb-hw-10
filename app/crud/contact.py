@@ -1,94 +1,82 @@
-import operator
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import date, timedelta
-from sqlalchemy import select, or_
 from app.models.contact import Contact
 from app.schemas.contact import ContactCreate, ContactUpdate
 
 
-async def create_contact(session: AsyncSession, data: ContactCreate) -> Contact:
-    new_contact = Contact(**data.model_dump())
-    session.add(new_contact)
-    await session.commit()
-    await session.refresh(new_contact)
-    return new_contact
+async def get_contacts(session: AsyncSession, user_id: int):
+    stmt = select(Contact).where(Contact.owner_id == user_id)
+    result = await session.execute(stmt)
+    return result.scalars().all()
 
 
-async def get_contacts(session: AsyncSession) -> list[Contact]:
-    result = await session.execute(select(Contact))
-    return list(result.scalars().all())  # Приводимо до list — IDE замовкає
-
-
-async def get_contact_by_id(session: AsyncSession, contact_id: int) -> Contact | None:
-    stmt = select(Contact).where(operator.eq(Contact.id, contact_id))
+async def get_contact_by_id(session: AsyncSession, contact_id: int, user_id: int):
+    stmt = select(Contact).where(
+        Contact.id == contact_id,
+        Contact.owner_id == user_id
+    )
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
 
-async def update_contact(
-    session: AsyncSession,
-    contact: Contact,
-    data: ContactUpdate
-) -> Contact:
-    for field, value in data.model_dump(exclude_unset=True).items():
-        setattr(contact, field, value)
-
+async def create_contact(session: AsyncSession, data: ContactCreate, user_id: int):
+    contact = Contact(
+        **data.model_dump(),
+        owner_id=user_id,
+    )
     session.add(contact)
     await session.commit()
     await session.refresh(contact)
     return contact
 
 
-async def delete_contact(session: AsyncSession, contact: Contact) -> None:
+async def update_contact(session: AsyncSession, contact: Contact, data: ContactUpdate):
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(contact, field, value)
+
+    await session.commit()
+    await session.refresh(contact)
+    return contact
+
+
+async def delete_contact(session: AsyncSession, contact: Contact):
     await session.delete(contact)
     await session.commit()
 
 
-
-async def search_contacts(
-    session: AsyncSession,
-    first_name: str | None = None,
-    last_name: str | None = None,
-    email: str | None = None,
-):
-    filters = []
+async def search_contacts(session: AsyncSession, user_id: int,
+                          first_name=None, last_name=None, email=None):
+    stmt = select(Contact).where(Contact.owner_id == user_id)
 
     if first_name:
-        filters.append(Contact.first_name.ilike(f"%{first_name}%"))
-
+        stmt = stmt.where(Contact.first_name.ilike(f"%{first_name}%"))
     if last_name:
-        filters.append(Contact.last_name.ilike(f"%{last_name}%"))
-
+        stmt = stmt.where(Contact.last_name.ilike(f"%{last_name}%"))
     if email:
-        filters.append(Contact.email.ilike(f"%{email}%"))
+        stmt = stmt.where(Contact.email.ilike(f"%{email}%"))
 
-    if not filters:
-        # Немає параметрів → повернути порожній список
-        return []
-
-    stmt = select(Contact).where(or_(*filters))
     result = await session.execute(stmt)
     return result.scalars().all()
 
 
+async def get_upcoming_birthdays(session: AsyncSession, user_id: int):
+    from datetime import date, timedelta
 
-async def get_upcoming_birthdays(session: AsyncSession):
     today = date.today()
-    target = today + timedelta(days=7)
+    end = today + timedelta(days=7)
 
-    stmt = select(Contact)
+    stmt = select(Contact).where(
+        Contact.owner_id == user_id,
+        Contact.birthday.is_not(None)
+    )
     result = await session.execute(stmt)
     contacts = result.scalars().all()
 
+    # фільтруємо в Python за MM-DD
     upcoming = []
-
     for c in contacts:
-        if not c.birthday:
-            continue
-
-        # Наводимо ДР до цього року
-        bd_this_year = c.birthday.replace(year=today.year)
-        if today <= bd_this_year <= target:
+        b = c.birthday
+        if b and today <= b.replace(year=today.year) <= end:
             upcoming.append(c)
 
     return upcoming

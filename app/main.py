@@ -5,8 +5,8 @@ from app.api.contacts import router as contacts_router
 
 app = FastAPI(title="Contacts API")
 
-app.include_router(auth_router)        # prefix уже в auth.py
-app.include_router(contacts_router, prefix="/contacts")
+app.include_router(auth_router)  # prefix вєе є в auth.py
+app.include_router(contacts_router)  # prefix вже є в contacts.py
 
 # CORS
 app.add_middleware(
